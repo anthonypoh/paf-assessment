@@ -1,0 +1,91 @@
+I imported directly to railway, so I've put placeholders in the values.
+
+mongoimport --host <host> --port <port> --username <username> --password <password> authenticationDatabase admin --db bedandbreakfast --collection listings_and_reviews --file listings.json
+
+TASK 2.2
+
+db.listings_and_reviews.aggregate([
+  {
+    $match: {
+      "address.country": /Australia/i,
+    },
+  },
+  {
+    $merge: {
+      into: "listings",
+    },
+  },
+])
+
+TASK 2.3
+
+db.listings.aggregate([
+  {
+    $unwind: "$reviews",
+  },
+  {
+    $project: {
+      _id: "$reviews._id",
+      date: "$reviews.date",
+      listing_id: "$reviews.listing_id",
+      reviewer_name: "$reviews.reviewer_name",
+      comments: "$reviews.comments",
+    },
+  },
+  {
+    $set: {
+      comments: {
+        $replaceAll: {
+          input: "$comments",
+          find: "\n",
+          replacement: "",
+        },
+      },
+    },
+  },
+  {
+    $set: {
+      comments: {
+        $replaceAll: {
+          input: "$comments",
+          find: "\r",
+          replacement: "",
+        },
+      },
+    },
+  },
+  {
+    $set: {
+      reviewer_name: {
+        $replaceAll: {
+          input: "$reviewer_name",
+          find: ",",
+          replacement: "",
+        },
+      },
+    },
+  },
+  {
+    $merge: {
+      into: "reviews",
+    },
+  },
+])
+
+TASK 2.4
+
+[
+  {
+    $unset: "reviews",
+  },
+  {
+    $out: {
+      db: "bedandbreakfast",
+      coll: "listings",
+    },
+  },
+]
+
+TASK 2.5
+
+mongoexport --host="" --port="" --username="" --password="" --authenticationDatabase admin --collection=reviews --db=bedandbreakfast --out=reviews.csv --fields 'date,listing_id,reviewer_name,comments'
